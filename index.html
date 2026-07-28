@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusConnect - College Portal</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- 1. NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="index.html">CampusConnect</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/dashboard.html">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/library.html">Library</a></li>
+                    <li class="nav-item"><a class="nav-link" href="pages/marketplace.html">Marketplace</a></li>
+                    <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-lg-2 px-3" href="pages/login.html">Login</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 2. HERO SECTION -->
+    <section class="bg-light text-center py-5 shadow-sm">
+        <div class="container py-4">
+            <h1 class="display-4 fw-bold text-primary">Welcome to CampusConnect</h1>
+            <p class="lead text-muted">A complete digital platform for students to connect, learn, and manage campus life effortlessly.</p>
+            <a href="pages/login.html" class="btn btn-primary btn-lg mt-3">Get Started</a>
+        </div>
+    </section>
+
+    <!-- 3. FEATURE CARDS -->
+    <section class="container my-5">
+        <h2 class="text-center mb-4 fw-bold">Explore Features</h2>
+        <div class="row g-4">
+            <!-- Card 1: Dashboard -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 shadow-sm border-0 text-center p-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Dashboard</h5>
+                        <p class="card-text text-secondary">Track your academic progress and daily schedules easily.</p>
+                        <a href="pages/dashboard.html" class="btn btn-outline-primary btn-sm">View Dashboard</a>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 2: Library -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 shadow-sm border-0 text-center p-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Library</h5>
+                        <p class="card-text text-secondary">Access digital books, notes, and study resources quickly.</p>
+                        <a href="pages/library.html" class="btn btn-outline-primary btn-sm">Browse Library</a>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 3: Marketplace -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 shadow-sm border-0 text-center p-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Marketplace</h5>
+                        <p class="card-text text-secondary">Buy or sell second-hand books and project materials.</p>
+                        <a href="pages/marketplace.html" class="btn btn-outline-primary btn-sm">Visit Market</a>
+                    </div>
+                </div>
+            </div>
+            <!-- Card 4: Student Login -->
+            <div class="col-md-6 col-lg-3">
+                <div class="card h-100 shadow-sm border-0 text-center p-3">
+                    <div class="card-body">
+                        <h5 class="card-title text-primary">Student Portal</h5>
+                        <p class="card-text text-secondary">Login to manage your profile and personalized settings.</p>
+                        <a href="pages/login.html" class="btn btn-outline-primary btn-sm">Login Now</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. FOOTER -->
+    <footer class="bg-dark text-white text-center py-3 mt-auto">
+        <div class="container">
+            <p class="mb-0">&copy; 2026 CampusConnect | Designed for TYIT Project</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="js/app.js"></script>
+</body>
+</html>
