@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusConnect - Login</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f4f6f9;
+      margin: 0;
+    }
+    .card {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      text-align: center;
+      width: 320px;
+    }
+    h2 { margin-bottom: 8px; color: #1a1a1a; }
+    p { color: #666666; font-size: 14px; margin-bottom: 24px; }
+    
+    .btn-google {
+      background-color: #4285F4;
+      color: #ffffff;
+      border: none;
+      padding: 12px 20px;
+      font-size: 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      font-weight: 600;
+    }
+    .btn-google:hover { background-color: #357ae8; }
+
+    /* Modal / Popup Box Styling */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+    }
+    .modal {
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      width: 300px;
+      text-align: left;
+    }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #333; }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .btn-submit {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px;
+      width: 100%;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Main Login Card -->
+  <div class="card">
+    <h2>CampusConnect</h2>
+    <p>Sign in to access the Library System</p>
+    <button class="btn-google" onclick="signInWithGoogle()">Sign in with Google</button>
+  </div>
+
+  <!-- Profile Setup Popup Modal (Initial State Hidden) -->
+  <div class="modal-overlay" id="profileModal">
+    <div class="modal">
+      <h3 style="margin-top:0;">Complete Student Profile</h3>
+      <p style="font-size: 12px; color: #666;">Please enter your college details to continue.</p>
+      
+      <form id="profileForm">
+        <div class="form-group">
+          <label>Roll Number / Enrollment No.</label>
+          <input type="text" id="rollNo" placeholder="e.g. 2024CS101" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Department / Branch</label>
+          <select id="department" required>
+            <option value="">Select Branch</option>
+            <option value="Computer Science">Computer Science</option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Mechanical">Mechanical</option>
+            <option value="Civil">Civil</option>
+            <option value="Electronics">Electronics</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Academic Year</label>
+          <select id="year" required>
+            <option value="">Select Year</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-submit">Save Profile & Continue</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Firebase Core Libraries -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Config -->
+  <script src="../js/firebase-config.js"></script>
+
+  <!-- Login Logic -->
+  <script>
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({
+  prompt: 'select_account'
+});
+    let currentUser = null;
+
+    function signInWithGoogle() {
+      auth.signInWithPopup(provider)
+        .then(async (result) => {
+          currentUser = result.user;
+          
+          // Check if user already exists in Firestore Database
+          const userDoc = await db.collection('users').doc(currentUser.uid).get();
+
+          if (userDoc.exists) {
+            // User already completed profile, go directly to Dashboard
+            console.log("Existing Student Logged In");
+            window.location.href = "dashboard.html";
+          } else {
+            // New User: Show Profile Registration Modal
+            document.getElementById('profileModal').style.display = 'flex';
+          }
+        })
+        .catch((error) => {
+          console.error("Auth Error:", error);
+          alert("Login failed: " + error.message);
+        });
+    }
+
+    // Handle Registration Form Submit
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const rollNo = document.getElementById('rollNo').value;
+      const department = document.getElementById('department').value;
+      const year = document.getElementById('year').value;
+
+      try {
+        // Save user data to Firestore
+        await db.collection('users').doc(currentUser.uid).set({
+          name: currentUser.displayName,
+          email: currentUser.email,
+          photoURL: currentUser.photoURL,
+          rollNo: rollNo,
+          department: department,
+          year: year,
+          role: "student",
+          createdAt: new Date()
+        });
+
+        alert("Profile Setup Complete! Welcome to CampusConnect.");
+        window.location.href = "dashboard.html";
+
+      } catch (error) {
+        console.error("Error saving profile:", error);
+        alert("Failed to save profile: " + error.message);
+      }
+    });
+  </script>
+
+</body>
+</html>
