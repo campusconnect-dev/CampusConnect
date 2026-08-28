@@ -1,19 +1,77 @@
-/* Custom Styles for CampusConnect */
+/* ==========================================
+   CAMPUSCONNECT MAIN STYLES
+========================================== */
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #f8f9fa;
+    min-height: 100vh;
 }
 
-.card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+/* HERO */
+
+.hero-section {
+    padding: 100px 20px;
+    background: linear-gradient(
+        135deg,
+        #eaf2ff,
+        #ffffff
+    );
 }
 
-.card:hover {
+.hero-section h1 {
+    color: #0d6efd;
+}
+
+
+/* FEATURE CARDS */
+
+.feature-card {
+    border: none;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+}
+
+
+.feature-icon {
+    font-size: 45px;
+    margin-bottom: 15px;
+}
+
+
+/* BOOK CARD */
+
+.book-card {
+    border: none;
+    border-radius: 12px;
+    transition: 0.3s;
+}
+
+.book-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
+
+
+/* FOOTER */
 
 footer {
-    font-size: 0.9rem;
+    margin-top: 50px;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+    .hero-section {
+        padding: 70px 15px;
+    }
+
 }
