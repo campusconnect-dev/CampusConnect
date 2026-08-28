@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Book Exchange - CampusConnect</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <link rel="stylesheet"
+          href="../css/style.css">
+
+</head>
+
+
+<body>
+
+
+<nav class="navbar navbar-dark bg-primary">
+
+    <div class="container">
+
+        <a class="navbar-brand fw-bold"
+           href="../index.html">
+
+            📚 CampusConnect
+
+        </a>
+
+        <div>
+
+            <a href="dashboard.html"
+               class="btn btn-light btn-sm me-2">
+
+                Dashboard
+
+            </a>
+
+            <a href="add-book.html"
+               class="btn btn-warning btn-sm">
+
+                + List Book
+
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<div class="container my-5">
+
+    <div class="text-center mb-5">
+
+        <h1>
+            🔄 Student Book Exchange
+        </h1>
+
+        <p class="text-muted">
+            Buy, sell or exchange books with students.
+        </p>
+
+    </div>
+
+
+    <div class="row mb-4">
+
+        <div class="col-md-8 mx-auto">
+
+            <input
+                id="searchInput"
+                class="form-control form-control-lg"
+                placeholder="Search books..."
+                onkeyup="filterBooks()">
+
+        </div>
+
+    </div>
+
+
+    <div class="row g-4"
+         id="marketContainer">
+
+        <div class="text-center">
+            Loading books...
+        </div>
+
+    </div>
+
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<script src="../js/firebase-config.js"></script>
+
+
+<script>
+
+let books = [];
+
+
+async function loadExchangeBooks() {
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("exchangeBooks")
+                .where("status", "==", "available")
+                .get();
+
+
+        books = [];
+
+
+        snapshot.forEach(doc => {
+
+            books.push({
+
+                id: doc.id,
+
+                ...doc.data()
+
+            });
+
+        });
+
+
+        displayBooks(books);
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        document
+            .getElementById("marketContainer")
+            .innerHTML = `
+                <div class="alert alert-danger">
+                    Unable to load exchange books.
+                </div>
+            `;
+
+    }
+
+}
+
+
+function displayBooks(data) {
+
+    const container =
+        document.getElementById("marketContainer");
+
+
+    container.innerHTML = "";
+
+
+    if (data.length === 0) {
+
+        container.innerHTML = `
+            <div class="text-center">
+                <h5>No books currently listed.</h5>
+                <p>Be the first student to list a book!</p>
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    data.forEach(book => {
+
+        container.innerHTML += `
+
+            <div class="col-md-4">
+
+                <div class="book-card">
+
+                    <div class="book-icon">
+                        📕
+                    </div>
+
+                    <h5 class="book-title">
+                        ${book.title}
+                    </h5>
+
+                    <p class="book-author">
+                        ${book.author}
+                    </p>
+
+                    <p>
+                        <strong>Subject:</strong>
+                        ${book.subject || "General"}
+                    </p>
+
+                    <p>
+                        <strong>Condition:</strong>
+                        ${book.condition || "Good"}
+                    </p>
+
+                    <p>
+                        <strong>Exchange Type:</strong>
+                        ${book.exchangeType || "Exchange"}
+                    </p>
+
+                    <p>
+                        <strong>Owner:</strong>
+                        ${book.ownerName || "Student"}
+                    </p>
+
+                    <button
+                        class="btn btn-success w-100"
+                        onclick="requestBook('${book.id}')">
+
+                        Request Book
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        `;
+
+    });
+
+}
+
+
+function filterBooks() {
+
+    const search =
+        document
+            .getElementById("searchInput")
+            .value
+            .toLowerCase();
+
+
+    const filtered =
+        books.filter(book =>
+
+            (book.title || "")
+                .toLowerCase()
+                .includes(search)
+
+            ||
+
+            (book.author || "")
+                .toLowerCase()
+                .includes(search)
+
+            ||
+
+            (book.subject || "")
+                .toLowerCase()
+                .includes(search)
+
+        );
+
+
+    displayBooks(filtered);
+
+}
+
+
+async function requestBook(bookId) {
+
+    const user =
+        auth.currentUser;
+
+
+    if (!user) {
+
+        alert("Please login first.");
+
+        window.location.href =
+            "login.html";
+
+        return;
+
+    }
+
+
+    try {
+
+        const bookRef =
+            db
+                .collection("exchangeBooks")
+                .doc(bookId);
+
+
+        const bookDoc =
+            await bookRef.get();
+
+
+        if (!bookDoc.exists) {
+
+            alert("Book no longer exists.");
+
+            return;
+
+        }
+
+
+        const book =
+            bookDoc.data();
+
+
+        if (book.ownerId === user.uid) {
+
+            alert(
+                "You cannot request your own book."
+            );
+
+            return;
+
+        }
+
+
+        await db
+            .collection("exchangeRequests")
+            .add({
+
+                bookId: bookId,
+
+                bookTitle: book.title,
+
+                ownerId: book.ownerId,
+
+                ownerName: book.ownerName,
+
+                requesterId: user.uid,
+
+                requesterName:
+                    user.displayName,
+
+                requesterEmail:
+                    user.email,
+
+                status: "pending",
+
+                createdAt:
+                    firebase.firestore.FieldValue.serverTimestamp()
+
+            });
+
+
+        alert(
+            "Request sent to the book owner!"
+        );
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            "Request failed: " +
+            error.message
+        );
+
+    }
+
+}
+
+
+loadExchangeBooks();
+
+</script>
+
+</body>
+
+</html>
