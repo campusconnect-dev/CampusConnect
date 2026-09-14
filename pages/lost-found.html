@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>CampusConnect - Lost & Found</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+    <div class="container">
+
+      <a class="navbar-brand fw-bold" href="../index.html">
+        CampusConnect
+      </a>
+
+      <button class="navbar-toggler" type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+
+        <ul class="navbar-nav ms-auto">
+
+          <li class="nav-item">
+            <a class="nav-link" href="../index.html">Home</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="dashboard.html">Dashboard</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="library.html">Library</a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link" href="marketplace.html">
+              Book Exchange
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a class="nav-link active" href="lost-found.html">
+              Lost &amp; Found
+            </a>
+          </li>
+
+        </ul>
+
+      </div>
+    </div>
+  </nav>
+
+
+  <!-- HEADER -->
+  <section class="bg-light text-center py-5 shadow-sm">
+
+    <div class="container">
+
+      <h1 class="display-6 fw-bold text-primary">
+        Lost &amp; Found
+      </h1>
+
+      <p class="lead text-muted">
+        Report lost or found items and help return them to their owners.
+      </p>
+
+    </div>
+
+  </section>
+
+
+  <!-- REPORT FORMS -->
+  <section class="container my-5">
+
+    <div class="row g-4">
+
+      <!-- REPORT LOST ITEM -->
+      <div class="col-md-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+          <div class="card-body p-4">
+
+            <h4 class="text-primary mb-3">
+              Report Lost Item
+            </h4>
+
+            <form id="lostForm">
+
+              <div class="mb-3">
+                <label class="form-label">Item Name</label>
+                <input type="text"
+                       id="lostItemName"
+                       class="form-control"
+                       placeholder="e.g. College ID Card"
+                       required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea id="lostDescription"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Describe the item"
+                          required></textarea>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Last Seen Location</label>
+                <input type="text"
+                       id="lostLocation"
+                       class="form-control"
+                       placeholder="e.g. Library"
+                       required>
+              </div>
+
+              <button type="submit"
+                      class="btn btn-primary">
+                Report Lost Item
+              </button>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- REPORT FOUND ITEM -->
+      <div class="col-md-6">
+
+        <div class="card shadow-sm border-0 h-100">
+
+          <div class="card-body p-4">
+
+            <h4 class="text-primary mb-3">
+              Report Found Item
+            </h4>
+
+            <form id="foundForm">
+
+              <div class="mb-3">
+                <label class="form-label">Item Name</label>
+                <input type="text"
+                       id="foundItemName"
+                       class="form-control"
+                       placeholder="e.g. Wallet"
+                       required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea id="foundDescription"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Describe the item"
+                          required></textarea>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Found Location</label>
+                <input type="text"
+                       id="foundLocation"
+                       class="form-control"
+                       placeholder="e.g. Canteen"
+                       required>
+              </div>
+
+              <button type="submit"
+                      class="btn btn-primary">
+                Report Found Item
+              </button>
+
+            </form>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- REPORTED ITEMS -->
+  <section class="container mb-5">
+
+    <h3 class="text-primary mb-4">
+      Reported Items
+    </h3>
+
+    <div id="itemsContainer" class="row g-4">
+
+      <div class="col-12 text-center text-muted">
+        No items reported yet.
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- FOOTER -->
+  <footer class="bg-dark text-white text-center py-3">
+
+    <div class="container">
+
+      <p class="mb-0">
+        &copy; 2026 CampusConnect | Designed for TYIT Project
+      </p>
+
+    </div>
+
+  </footer>
+
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <script src="../js/firebase-config.js"></script>
+
+
+  <!-- Lost & Found JavaScript -->
+  <script>
+
+    
+
+    // Report Lost Item
+    document.getElementById("lostForm").addEventListener("submit", async function(e) {
+
+      e.preventDefault();
+
+      try {
+
+        await db.collection("lost_found_items").add({
+          itemName: document.getElementById("lostItemName").value,
+          description: document.getElementById("lostDescription").value,
+          location: document.getElementById("lostLocation").value,
+          type: "Lost",
+          status: "Open",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert("Lost item reported successfully!");
+
+        document.getElementById("lostForm").reset();
+
+        loadItems();
+
+      } catch (error) {
+
+        console.error(error);
+        alert("Error reporting lost item.");
+
+      }
+
+    });
+
+
+    // Report Found Item
+    document.getElementById("foundForm").addEventListener("submit", async function(e) {
+
+      e.preventDefault();
+
+      try {
+
+        await db.collection("lost_found_items").add({
+          itemName: document.getElementById("foundItemName").value,
+          description: document.getElementById("foundDescription").value,
+          location: document.getElementById("foundLocation").value,
+          type: "Found",
+          status: "Open",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        alert("Found item reported successfully!");
+
+        document.getElementById("foundForm").reset();
+
+        loadItems();
+
+      } catch (error) {
+
+        console.error(error);
+        alert("Error reporting found item.");
+
+      }
+
+    });
+
+
+    // Load Items
+    async function loadItems() {
+
+      const container = document.getElementById("itemsContainer");
+
+      try {
+
+        const snapshot = await db
+          .collection("lost_found_items")
+          .orderBy("createdAt", "desc")
+          .get();
+
+        if (snapshot.empty) {
+
+          container.innerHTML = `
+            <div class="col-12 text-center text-muted">
+              No items reported yet.
+            </div>
+          `;
+
+          return;
+        }
+
+        container.innerHTML = "";
+
+        snapshot.forEach(doc => {
+
+          const item = doc.data();
+
+          container.innerHTML += `
+            <div class="col-md-6 col-lg-4">
+
+              <div class="card h-100 shadow-sm border-0">
+
+                <div class="card-body">
+
+                  <span class="badge ${item.type === "Lost" ? "bg-danger" : "bg-success"} mb-2">
+                    ${item.type}
+                  </span>
+
+                  <h5 class="card-title">
+                    ${item.itemName}
+                  </h5>
+
+                  <p class="card-text text-secondary">
+                    ${item.description}
+                  </p>
+
+                  <p class="mb-1">
+                    <strong>Location:</strong> ${item.location}
+                  </p>
+
+                  <p class="mb-0">
+                    <strong>Status:</strong> ${item.status}
+                  </p>
+
+                </div>
+
+              </div>
+
+            </div>
+          `;
+
+        });
+
+      } catch (error) {
+
+        console.error(error);
+
+        container.innerHTML = `
+          <div class="col-12 text-danger text-center">
+            Unable to load reported items.
+          </div>
+        `;
+
+      }
+
+    }
+
+
+    // Load items when page opens
+    loadItems();
+
+  </script>
+
+</body>
+</html>

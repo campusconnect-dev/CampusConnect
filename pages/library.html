@@ -22,6 +22,8 @@
 <body>
 
 
+<!-- NAVBAR -->
+
 <nav class="navbar navbar-dark bg-primary">
 
     <div class="container">
@@ -51,6 +53,9 @@
 
 <div class="container my-5">
 
+
+    <!-- PAGE TITLE -->
+
     <div class="text-center mb-5">
 
         <h1>
@@ -58,13 +63,69 @@
         </h1>
 
         <p class="text-muted">
-            Search books available in the college library
+            Manage library entry and search available books
         </p>
 
     </div>
 
 
-    <!-- SEARCH -->
+    <!-- LIBRARY PUNCH SECTION -->
+
+    <div class="card shadow-sm border-0 mb-5">
+
+        <div class="card-body text-center p-4">
+
+            <h3 class="text-primary">
+                Library Attendance
+            </h3>
+
+            <p class="text-muted">
+                Record your library entry and exit
+            </p>
+
+
+            <div class="mb-3">
+
+                <span id="visitStatus"
+                      class="badge bg-secondary">
+
+                    Checking status...
+
+                </span>
+
+            </div>
+
+
+            <button id="punchInBtn"
+                    class="btn btn-success me-2"
+                    onclick="punchIn()">
+
+                Punch In
+
+            </button>
+
+
+            <button id="punchOutBtn"
+                    class="btn btn-danger"
+                    onclick="punchOut()"
+                    disabled>
+
+                Punch Out
+
+            </button>
+
+
+            <p id="visitMessage"
+               class="mt-3 mb-0 text-muted">
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- SEARCH BOOKS -->
 
     <div class="row mb-4">
 
@@ -111,8 +172,262 @@
 
 let allBooks = [];
 
+let currentUser = null;
 
-/* LOAD BOOKS */
+let activeVisitId = null;
+
+
+/* =========================
+   AUTHENTICATION
+========================= */
+
+auth.onAuthStateChanged(function(user) {
+
+    currentUser = user;
+
+    if (!user) {
+
+        document.getElementById("visitStatus").textContent =
+            "Not Logged In";
+
+        document.getElementById("visitStatus").className =
+            "badge bg-secondary";
+
+        document.getElementById("punchInBtn").disabled = true;
+
+        document.getElementById("punchOutBtn").disabled = true;
+
+        return;
+
+    }
+
+    checkActiveVisit();
+
+});
+
+
+/* =========================
+   CHECK ACTIVE VISIT
+========================= */
+
+async function checkActiveVisit() {
+
+    if (!currentUser) {
+        return;
+    }
+
+    try {
+
+        const snapshot = await db
+            .collection("libraryVisits")
+            .where("studentId", "==", currentUser.uid)
+            .where("status", "==", "Inside")
+            .limit(1)
+            .get();
+
+
+        if (!snapshot.empty) {
+
+            activeVisitId = snapshot.docs[0].id;
+
+            document.getElementById("visitStatus").textContent =
+                "Currently Inside Library";
+
+            document.getElementById("visitStatus").className =
+                "badge bg-success";
+
+            document.getElementById("punchInBtn").disabled = true;
+
+            document.getElementById("punchOutBtn").disabled = false;
+
+            document.getElementById("visitMessage").textContent =
+                "You have already punched in.";
+
+        }
+
+        else {
+
+            activeVisitId = null;
+
+            document.getElementById("visitStatus").textContent =
+                "Not Inside Library";
+
+            document.getElementById("visitStatus").className =
+                "badge bg-secondary";
+
+            document.getElementById("punchInBtn").disabled = false;
+
+            document.getElementById("punchOutBtn").disabled = true;
+
+            document.getElementById("visitMessage").textContent =
+                "You can punch in when you enter the library.";
+
+        }
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        document.getElementById("visitMessage").textContent =
+            "Unable to check library status.";
+
+    }
+
+}
+
+
+/* =========================
+   PUNCH IN
+========================= */
+
+async function punchIn() {
+
+    if (!currentUser) {
+
+        alert("Please login first.");
+
+        window.location.href = "login.html";
+
+        return;
+
+    }
+
+
+    try {
+
+        const existingVisit = await db
+            .collection("libraryVisits")
+            .where("studentId", "==", currentUser.uid)
+            .where("status", "==", "Inside")
+            .limit(1)
+            .get();
+
+
+        if (!existingVisit.empty) {
+
+            alert("You are already inside the library.");
+
+            checkActiveVisit();
+
+            return;
+
+        }
+
+
+        const visitRef = await db
+            .collection("libraryVisits")
+            .add({
+
+                studentId: currentUser.uid,
+
+                studentName:
+                    currentUser.displayName || "Student",
+
+                studentEmail:
+                    currentUser.email || "",
+
+                punchIn:
+                    firebase.firestore.FieldValue.serverTimestamp(),
+
+                punchOut: null,
+
+                status: "Inside"
+
+            });
+
+
+        activeVisitId = visitRef.id;
+
+
+        alert("Library Punch In successful!");
+
+
+        checkActiveVisit();
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            "Unable to Punch In: " +
+            error.message
+        );
+
+    }
+
+}
+
+
+/* =========================
+   PUNCH OUT
+========================= */
+
+async function punchOut() {
+
+    if (!currentUser) {
+
+        alert("Please login first.");
+
+        return;
+
+    }
+
+
+    if (!activeVisitId) {
+
+        alert("No active library visit found.");
+
+        return;
+
+    }
+
+
+    try {
+
+        await db
+            .collection("libraryVisits")
+            .doc(activeVisitId)
+            .update({
+
+                punchOut:
+                    firebase.firestore.FieldValue.serverTimestamp(),
+
+                status: "Completed"
+
+            });
+
+
+        activeVisitId = null;
+
+
+        alert("Library Punch Out successful!");
+
+
+        checkActiveVisit();
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            "Unable to Punch Out: " +
+            error.message
+        );
+
+    }
+
+}
+
+
+/* =========================
+   LOAD BOOKS
+========================= */
 
 async function loadBooks() {
 
@@ -160,7 +475,9 @@ async function loadBooks() {
 }
 
 
-/* DISPLAY */
+/* =========================
+   DISPLAY BOOKS
+========================= */
 
 function displayBooks(books) {
 
@@ -263,7 +580,9 @@ function displayBooks(books) {
 }
 
 
-/* SEARCH */
+/* =========================
+   SEARCH BOOKS
+========================= */
 
 function filterBooks() {
 
@@ -301,7 +620,9 @@ function filterBooks() {
 }
 
 
-/* BORROW */
+/* =========================
+   BORROW BOOK
+========================= */
 
 async function borrowBook(bookId) {
 
@@ -408,9 +729,14 @@ async function borrowBook(bookId) {
 }
 
 
+/* =========================
+   START
+========================= */
+
 loadBooks();
 
 </script>
+
 
 </body>
 
