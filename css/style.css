@@ -75,3 +75,26 @@ footer {
     }
 
 }
+/* Marketplace Book Cards */
+.book-card {
+    height: 100%;
+    min-height: 470px;
+    display: flex;
+    flex-direction: column;
+}
+
+.book-card .btn {
+    margin-top: auto;
+}
+
+.book-card p {
+    margin-bottom: 8px;
+}
+
+.book-title {
+    min-height: 28px;
+}
+
+.book-author {
+    min-height: 24px;
+}

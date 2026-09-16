@@ -176,6 +176,56 @@
 
   </section>
 
+  <!-- MY REQUESTS -->
+<section class="container mb-5">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-body">
+
+      <h4 class="text-primary mb-3">
+        My Book Requests
+      </h4>
+
+      <div id="myRequestsList">
+
+        <p class="text-muted">
+          Loading your requests...
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- MY LIBRARY BOOKS -->
+<section class="container mb-5">
+
+  <div class="card shadow-sm border-0">
+
+    <div class="card-body">
+
+      <h4 class="text-primary mb-3">
+        My Library Books
+      </h4>
+
+      <div id="myLibraryBooksList">
+
+        <p class="text-muted">
+          Loading library records...
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
 
   <!-- FOOTER -->
   <footer class="bg-dark text-white text-center py-3 mt-auto">
@@ -192,8 +242,180 @@
 
 
   <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
-  </script>
+ <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+
+<script>
+
+  async function loadMyRequests() {
+
+    const user = auth.currentUser;
+
+    if (!user) {
+        return;
+    }
+
+    const container =
+        document.getElementById("myRequestsList");
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("exchangeRequests")
+                .where("requesterId", "==", user.uid)
+                .get();
+
+        if (snapshot.empty) {
+
+            container.innerHTML = `
+                <p class="text-muted">
+                    You have not submitted any book requests yet.
+                </p>
+            `;
+
+            return;
+        }
+
+        container.innerHTML = "";
+
+        snapshot.forEach(doc => {
+
+            const request = doc.data();
+
+            let badgeClass = "bg-warning text-dark";
+
+            if (request.status === "approved") {
+                badgeClass = "bg-success";
+            }
+
+            if (request.status === "rejected") {
+                badgeClass = "bg-danger";
+            }
+
+            container.innerHTML += `
+                <div class="border rounded p-3 mb-3">
+
+                    <h6 class="mb-2">
+                        ${request.bookTitle}
+                    </h6>
+
+                    <span class="badge ${badgeClass}">
+                        ${request.status}
+                    </span>
+
+                </div>
+            `;
+        });
+
+    }
+    catch(error) {
+
+        console.error(error);
+
+        container.innerHTML = `
+            <p class="text-danger">
+                Unable to load your requests.
+            </p>
+        `;
+    }
+}
+
+async function loadMyLibraryBooks() {
+
+    const user = auth.currentUser;
+
+    if (!user) {
+        return;
+    }
+
+    const container =
+        document.getElementById("myLibraryBooksList");
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("borrowRecords")
+                .where("borrowerId", "==", user.uid)
+                .get();
+
+        if (snapshot.empty) {
+
+            container.innerHTML = `
+                <p class="text-muted">
+                    You have no library book records yet.
+                </p>
+            `;
+
+            return;
+        }
+
+        container.innerHTML = "";
+
+        snapshot.forEach(doc => {
+
+            const record = doc.data();
+
+            let badgeClass = "bg-warning text-dark";
+            let statusText = "Pending";
+
+            if (record.status === "active") {
+                badgeClass = "bg-success";
+                statusText = "Borrowed";
+            }
+
+            if (record.status === "returned") {
+                badgeClass = "bg-secondary";
+                statusText = "Returned";
+            }
+
+            container.innerHTML += `
+                <div class="border rounded p-3 mb-3">
+
+                    <h6 class="mb-2">
+                        ${record.bookTitle}
+                    </h6>
+
+                    <span class="badge ${badgeClass}">
+                        ${statusText}
+                    </span>
+
+                </div>
+            `;
+        });
+
+    }
+    catch(error) {
+
+        console.error(error);
+
+        container.innerHTML = `
+            <p class="text-danger">
+                Unable to load library records.
+            </p>
+        `;
+    }
+}
+
+auth.onAuthStateChanged(async function(user) {
+
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    console.log("Logged in student:", user.displayName);
+
+    await loadMyRequests();
+
+    await loadMyLibraryBooks();
+
+});
+
+</script>
 
 </body>
 </html>

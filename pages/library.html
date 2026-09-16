@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <meta charset="UTF-8">
 
@@ -31,7 +32,7 @@
         <a class="navbar-brand fw-bold"
            href="../index.html">
 
-            📚 CampusConnect
+            <i class="bi bi-book"></i> CampusConnect
 
         </a>
 
@@ -59,7 +60,7 @@
     <div class="text-center mb-5">
 
         <h1>
-            📚 Smart Library
+            <i class="bi bi-book"></i> Smart Library
         </h1>
 
         <p class="text-muted">
@@ -291,9 +292,7 @@ async function punchIn() {
         window.location.href = "login.html";
 
         return;
-
     }
-
 
     try {
 
@@ -304,7 +303,6 @@ async function punchIn() {
             .limit(1)
             .get();
 
-
         if (!existingVisit.empty) {
 
             alert("You are already inside the library.");
@@ -312,37 +310,58 @@ async function punchIn() {
             checkActiveVisit();
 
             return;
-
         }
 
+        // Get student's profile
+        const userDoc = await db
+            .collection("users")
+            .doc(currentUser.uid)
+            .get();
 
-        const visitRef = await db
-            .collection("libraryVisits")
-            .add({
+        let studentRollNo = "";
+let studentDepartment = "";
+let studentYear = "";
 
-                studentId: currentUser.uid,
+if (userDoc.exists) {
+    const userData = userDoc.data();
 
-                studentName:
-                    currentUser.displayName || "Student",
+    studentRollNo = userData.rollNo || "";
+    studentDepartment = userData.department || "";
+    studentYear = userData.year || "";
+}
 
-                studentEmail:
-                    currentUser.email || "",
+        // Roll number is required for library attendance
+        if (!studentRollNo) {
 
-                punchIn:
-                    firebase.firestore.FieldValue.serverTimestamp(),
+            alert(
+                "Roll Number not found in your profile. Please complete your student profile first."
+            );
 
-                punchOut: null,
+            return;
+        }
 
-                status: "Inside"
+        // Create library visit
+        const visitRef = await db.collection("libraryVisits").add({
 
-            });
+            studentId: currentUser.uid,
+            studentName: currentUser.displayName || "Student",
+            studentEmail: currentUser.email || "",
+            studentRollNo: studentRollNo,
+            studentDepartment: studentDepartment,
+            studentYear: studentYear,
 
+            punchIn:
+                firebase.firestore.FieldValue.serverTimestamp(),
+
+            punchOut: null,
+
+            status: "Inside"
+
+        });
 
         activeVisitId = visitRef.id;
 
-
         alert("Library Punch In successful!");
-
 
         checkActiveVisit();
 
@@ -360,7 +379,6 @@ async function punchIn() {
     }
 
 }
-
 
 /* =========================
    PUNCH OUT
@@ -514,7 +532,7 @@ function displayBooks(books) {
                 <div class="book-card">
 
                     <div class="book-icon">
-                        📖
+                        <i class="bi bi-journal-bookmark"></i>
                     </div>
 
                     <h5 class="book-title">
@@ -619,97 +637,89 @@ function filterBooks() {
 
 }
 
-
 /* =========================
-   BORROW BOOK
+   REQUEST BOOK
 ========================= */
 
 async function borrowBook(bookId) {
 
-    const user =
-        auth.currentUser;
-
+    const user = auth.currentUser;
 
     if (!user) {
 
         alert("Please login first.");
 
-        window.location.href =
-            "login.html";
+        window.location.href = "login.html";
 
         return;
-
     }
-
 
     try {
 
         const bookRef =
-            db
-                .collection("libraryBooks")
-                .doc(bookId);
-
+            db.collection("libraryBooks").doc(bookId);
 
         const bookDoc =
             await bookRef.get();
-
 
         if (!bookDoc.exists) {
 
             alert("Book does not exist.");
 
             return;
-
         }
 
-
-        const book =
-            bookDoc.data();
-
+        const book = bookDoc.data();
 
         if (!book.available) {
 
-            alert("This book is already borrowed.");
+            alert("This book is currently unavailable.");
 
             return;
-
         }
 
+        // Check whether this student already requested this book
+        const existingRequest =
+            await db
+                .collection("borrowRecords")
+                .where("bookId", "==", bookId)
+                .where("borrowerId", "==", user.uid)
+                .where("status", "==", "pending")
+                .get();
 
-        await db
-            .collection("borrowRecords")
-            .add({
+        if (!existingRequest.empty) {
 
-                bookId: bookId,
+            alert("You have already requested this book.");
 
-                bookTitle: book.title,
+            return;
+        }
 
-                borrowerId: user.uid,
+        // Create pending request
+        await db.collection("borrowRecords").add({
 
-                borrowerName:
-                    user.displayName,
+            bookId: bookId,
 
-                borrowedAt:
-                    firebase.firestore.FieldValue.serverTimestamp(),
+            bookTitle: book.title,
 
-                status: "active"
+            borrowerId: user.uid,
 
-            });
+            borrowerName:
+                user.displayName || "Student",
 
+            requestedAt:
+                firebase.firestore.FieldValue.serverTimestamp(),
 
-        await bookRef.update({
+            borrowedAt: null,
 
-            available: false,
+            returnedAt: null,
 
-            borrowedBy: user.uid
+            status: "pending"
 
         });
 
-
         alert(
-            "Book requested successfully!"
+            "Book request submitted successfully. Please wait for librarian approval."
         );
-
 
         loadBooks();
 
@@ -727,7 +737,6 @@ async function borrowBook(bookId) {
     }
 
 }
-
 
 /* =========================
    START

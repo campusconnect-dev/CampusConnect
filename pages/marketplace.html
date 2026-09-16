@@ -3,6 +3,8 @@
 
 <head>
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <meta charset="UTF-8">
 
     <meta name="viewport"
@@ -29,7 +31,7 @@
         <a class="navbar-brand fw-bold"
            href="../index.html">
 
-            📚 CampusConnect
+            <i class="bi bi-book"></i> CampusConnect
 
         </a>
 
@@ -61,7 +63,7 @@
     <div class="text-center mb-5">
 
         <h1>
-            🔄 Student Book Exchange
+            <i class="bi bi-arrow-left-right"></i> Student Book Exchange
         </h1>
 
         <p class="text-muted">
@@ -85,15 +87,58 @@
 
     </div>
 
+<!-- ================= MARKETPLACE BOOKS ================= -->
 
-    <div class="row g-4"
-         id="marketContainer">
+<div id="marketContainer" class="row g-4 mt-3">
 
-        <div class="text-center">
-            Loading books...
+    <p class="text-muted">
+        Loading books...
+    </p>
+
+</div>
+
+
+<!-- ================= MY BOOK REQUESTS ================= -->
+
+<div class="card shadow-sm border-0 mt-5">
+
+    <div class="card-body">
+
+        <h4 class="text-primary mb-3">
+            My Book Requests
+        </h4>
+
+        <div id="myRequestsList">
+
+            <p class="text-muted">
+                Loading requests...
+            </p>
+
         </div>
 
     </div>
+
+</div>
+
+
+
+<!-- ================= REQUESTS FOR MY BOOKS ================= -->
+
+<div class="card shadow-sm border-0 mt-4 mb-5">
+    <div class="card-body">
+
+        <h4 class="text-primary mb-3">
+            Requests For My Books
+        </h4>
+
+        <div id="ownerRequestsList">
+            <p class="text-muted">
+                Loading requests...
+            </p>
+        </div>
+
+    </div>
+</div>
 
 </div>
 
@@ -110,6 +155,7 @@
 <script>
 
 let books = [];
+let myRequestStatuses = {};
 
 
 async function loadExchangeBooks() {
@@ -192,7 +238,7 @@ function displayBooks(data) {
                 <div class="book-card">
 
                     <div class="book-icon">
-                        📕
+                        <i class="bi bi-journal-bookmark"></i>
                     </div>
 
                     <h5 class="book-title">
@@ -209,27 +255,101 @@ function displayBooks(data) {
                     </p>
 
                     <p>
-                        <strong>Condition:</strong>
-                        ${book.condition || "Good"}
-                    </p>
+    <strong>Condition:</strong>
+    ${book.condition || "Good"}
+</p>
 
-                    <p>
-                        <strong>Exchange Type:</strong>
-                        ${book.exchangeType || "Exchange"}
-                    </p>
+<p>
+    <strong>Transaction Type:</strong>
+    ${book.transactionType || book.exchangeType || "Exchange"}
+</p>
 
-                    <p>
-                        <strong>Owner:</strong>
-                        ${book.ownerName || "Student"}
-                    </p>
+${book.transactionType === "Sell"
+    ? `
+        <p>
+            <strong>Selling Price:</strong>
+            ₹${book.price || 0}
+        </p>
+      `
+    : ""
+}
 
-                    <button
-                        class="btn btn-success w-100"
-                        onclick="requestBook('${book.id}')">
+${book.transactionType === "Exchange"
+    ? `
+        ${book.wantedBookTitle
+            ? `
+                <p>
+                    <strong>Wanted in Exchange:</strong>
+                    ${book.wantedBookTitle}
+                </p>
+              `
+            : ""
+        }
 
-                        Request Book
+        ${book.wantedBookDetails
+            ? `
+                <p>
+                    <strong>Exchange Details:</strong>
+                    ${book.wantedBookDetails}
+                </p>
+              `
+            : ""
+        }
+      `
+    : ""
+}
 
-                    </button>
+${book.transactionType === "Donate"
+    ? `
+        <p>
+            <strong>Type:</strong>
+            Donation
+        </p>
+      `
+    : ""
+}
+
+<p>
+    <strong>Owner:</strong>
+    ${book.ownerName || "Student"}
+</p>
+
+                    
+
+                    ${myRequestStatuses[book.id] === "approved"
+
+    ? `
+        <button
+            class="btn btn-success w-100"
+            disabled>
+
+            Request Approved
+
+        </button>
+      `
+
+    : myRequestStatuses[book.id] === "pending"
+
+    ? `
+        <button
+            class="btn btn-warning w-100"
+            disabled>
+
+            Request Pending
+
+        </button>
+      `
+
+    : `
+        <button
+            class="btn btn-success w-100"
+            onclick="requestBook('${book.id}')">
+
+            Request Book
+
+        </button>
+      `
+}
 
                 </div>
 
@@ -331,6 +451,20 @@ async function requestBook(bookId) {
 
         }
 
+        const existingRequest = await db
+    .collection("exchangeRequests")
+    .where("bookId", "==", bookId)
+    .where("requesterId", "==", user.uid)
+    .where("status", "==", "pending")
+    .get();
+
+if (!existingRequest.empty) {
+
+    alert("You have already requested this book.");
+
+    return;
+}
+
 
         await db
             .collection("exchangeRequests")
@@ -379,8 +513,337 @@ async function requestBook(bookId) {
 
 }
 
+async function loadMyRequests() {
 
-loadExchangeBooks();
+    const user = auth.currentUser;
+
+    if (!user) {
+        return;
+    }
+
+    const container =
+        document.getElementById("myRequestsList");
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("exchangeRequests")
+                .where("requesterId", "==", user.uid)
+                .get();
+
+        myRequestStatuses = {};
+
+        if (snapshot.empty) {
+
+            container.innerHTML = `
+                <p class="text-muted">
+                    You have not submitted any book requests yet.
+                </p>
+            `;
+
+            displayBooks(books);
+
+            return;
+        }
+
+        let html = "";
+
+        snapshot.forEach(function(doc) {
+
+            const data = doc.data();
+
+            myRequestStatuses[data.bookId] =
+                data.status;
+
+            let badgeClass =
+                "bg-warning text-dark";
+
+            let statusText =
+                "Pending";
+
+            if (data.status === "approved") {
+
+                badgeClass =
+                    "bg-success";
+
+                statusText =
+                    "Accepted";
+
+            }
+
+            if (data.status === "rejected") {
+
+                badgeClass =
+                    "bg-danger";
+
+                statusText =
+                    "Rejected";
+
+            }
+
+            html += `
+
+                <div class="border rounded p-3 mb-3">
+
+                    <h6 class="mb-2">
+                        ${data.bookTitle || "Book"}
+                    </h6>
+
+                    <p class="mb-2">
+
+                        <strong>Owner:</strong>
+                        ${data.ownerName || "Owner"}
+
+                    </p>
+
+                    <span class="badge ${badgeClass}">
+                        ${statusText}
+                    </span>
+
+                </div>
+
+            `;
+
+        });
+
+        container.innerHTML = html;
+
+        displayBooks(books);
+
+    }
+
+    catch(error) {
+
+        console.error(
+            "Unable to load my requests:",
+            error
+        );
+
+        container.innerHTML = `
+            <p class="text-danger">
+                Unable to load your requests.
+            </p>
+        `;
+
+    }
+
+}
+
+async function loadOwnerRequests() {
+
+    const user = auth.currentUser;
+
+    if (!user) {
+        return;
+    }
+
+    const container =
+        document.getElementById("ownerRequestsList");
+
+    try {
+
+        const snapshot =
+            await db
+                .collection("exchangeRequests")
+                .where("ownerId", "==", user.uid)
+                .get();
+
+        if (snapshot.empty) {
+
+            container.innerHTML = `
+                <p class="text-muted">
+                    No requests received for your books.
+                </p>
+            `;
+
+            return;
+        }
+
+        let html = "";
+
+        snapshot.forEach(function(doc) {
+
+            const data = doc.data();
+
+            let action = "";
+
+            if (data.status === "pending") {
+
+                action = `
+                    <button
+                        class="btn btn-sm btn-success me-2"
+                        onclick="acceptOwnerRequest('${doc.id}', '${data.bookId}')">
+
+                        Accept
+
+                    </button>
+
+                    <button
+                        class="btn btn-sm btn-danger"
+                        onclick="rejectOwnerRequest('${doc.id}')">
+
+                        Reject
+
+                    </button>
+                `;
+
+            }
+            else if (data.status === "approved") {
+
+                action = `
+                    <span class="badge bg-success">
+                        Accepted
+                    </span>
+                `;
+
+            }
+            else {
+
+                action = `
+                    <span class="badge bg-danger">
+                        Rejected
+                    </span>
+                `;
+
+            }
+
+            html += `
+
+                <div class="border rounded p-3 mb-3">
+
+                    <h6 class="mb-2">
+                        ${data.bookTitle || "Book"}
+                    </h6>
+
+                    <p class="mb-1">
+                        <strong>Requested By:</strong>
+                        ${data.requesterName || "Student"}
+                    </p>
+
+                    <p class="mb-3">
+                        <strong>Email:</strong>
+                        ${data.requesterEmail || "-"}
+                    </p>
+
+                    ${action}
+
+                </div>
+
+            `;
+
+        });
+
+        container.innerHTML = html;
+
+    }
+    catch(error) {
+
+        console.error(error);
+
+        container.innerHTML = `
+            <p class="text-danger">
+                Unable to load received requests.
+            </p>
+        `;
+
+    }
+
+}
+
+async function acceptOwnerRequest(requestId, bookId) {
+
+    if (!confirm("Accept this book request?")) {
+        return;
+    }
+
+    try {
+
+        await db
+            .collection("exchangeRequests")
+            .doc(requestId)
+            .update({
+                status: "approved",
+                approvedAt:
+                    firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+        await db
+            .collection("exchangeBooks")
+            .doc(bookId)
+            .update({
+                status: "unavailable"
+            });
+
+        alert("Book request accepted.");
+
+        await loadOwnerRequests();
+        await loadMyRequests();
+        await loadExchangeBooks();
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            "Unable to accept request: " +
+            error.message
+        );
+
+    }
+
+}
+
+async function rejectOwnerRequest(requestId) {
+
+    if (!confirm("Reject this book request?")) {
+        return;
+    }
+
+    try {
+
+        await db
+            .collection("exchangeRequests")
+            .doc(requestId)
+            .update({
+                status: "rejected",
+                rejectedAt:
+                    firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+        alert("Book request rejected.");
+
+        await loadOwnerRequests();
+        await loadMyRequests();
+
+    }
+
+    catch(error) {
+
+        console.error(error);
+
+        alert(
+            "Unable to reject request: " +
+            error.message
+        );
+
+    }
+
+}
+
+
+auth.onAuthStateChanged(async function(user) {
+
+    await loadExchangeBooks();
+
+    if (user) {
+        await loadMyRequests();
+        await loadOwnerRequests();
+    }
+
+});
 
 </script>
 

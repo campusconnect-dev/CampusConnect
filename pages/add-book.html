@@ -3,6 +3,8 @@
 
 <head>
 
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <meta charset="UTF-8">
 
     <meta name="viewport"
@@ -29,7 +31,7 @@
         <a class="navbar-brand fw-bold"
            href="../index.html">
 
-            📚 CampusConnect
+            <i class="bi bi-book"></i> CampusConnect
 
         </a>
 
@@ -56,7 +58,7 @@
                 <div class="card-body p-4">
 
                     <h3 class="mb-4">
-                        📕 List Your Book
+                        <i class="bi bi-journal-plus"></i> Add Book
                     </h3>
 
 
@@ -146,30 +148,146 @@
 
                         <div class="mb-3">
 
-                            <label class="form-label">
-                                Exchange Type
-                            </label>
+    <label class="form-label">
+        I am
+    </label>
 
-                            <select
-                                id="exchangeType"
-                                class="form-select"
-                                required>
+    <select
+        id="senderType"
+        class="form-select"
+        required>
 
-                                <option value="Exchange">
-                                    Exchange for another book
-                                </option>
+        <option value="">
+            Select who you are
+        </option>
 
-                                <option value="Free">
-                                    Give away for free
-                                </option>
+        <option value="Student">
+            Student
+        </option>
 
-                                <option value="Sell">
-                                    Sell
-                                </option>
+        <option value="Ex-Student">
+            Ex-Student
+        </option>
 
-                            </select>
+        <option value="External Person">
+            External Person
+        </option>
 
-                        </div>
+        <option value="Institution / College">
+            Institution / College
+        </option>
+
+        <option value="Library">
+            Library
+        </option>
+
+    </select>
+
+</div>
+
+
+<div class="mb-3">
+
+    <label class="form-label">
+        Transaction Type
+    </label>
+
+    <select
+        id="transactionType"
+        class="form-select"
+        required>
+
+        <option value="">
+            Select transaction type
+        </option>
+
+        <option value="Sell">
+            Sell
+        </option>
+
+        <option value="Exchange">
+            Exchange
+        </option>
+
+        <option value="Donate">
+            Donate
+        </option>
+
+    </select>
+
+</div>
+
+
+<div class="mb-3">
+
+    <label class="form-label">
+        I want to give it to
+    </label>
+
+    <select
+        id="recipientType"
+        class="form-select"
+        required>
+
+        <option value="">
+            Select recipient
+        </option>
+
+        <option value="Student">
+            Student
+        </option>
+
+        <option value="Ex-Student">
+            Ex-Student
+        </option>
+
+        <option value="External Person">
+            External Person
+        </option>
+
+        <option value="Institution / College">
+            Institution / College
+        </option>
+
+        <option value="Library">
+            Library
+        </option>
+
+    </select>
+
+</div>
+
+<!-- Sell Details -->
+<div id="sellDetails" style="display:none;">
+    <div class="mb-3">
+        <label class="form-label">Selling Price (₹)</label>
+        <input type="number" id="price" class="form-control" min="0" placeholder="Enter price">
+    </div>
+</div>
+
+<!-- Exchange Details -->
+<div id="exchangeDetails" style="display:none;">
+    <div class="mb-3">
+        <label class="form-label">Book You Want in Exchange</label>
+        <input type="text" id="wantedBookTitle" class="form-control"
+               placeholder="Enter desired book title">
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Exchange Details</label>
+        <textarea id="wantedBookDetails" class="form-control" rows="2"
+                  placeholder="Optional details about the book you want"></textarea>
+    </div>
+</div>
+
+<!-- Contact -->
+<div class="mb-3">
+    <label class="form-label">WhatsApp Number (Optional)</label>
+    <input type="tel" id="contactPhone" class="form-control"
+           placeholder="Enter WhatsApp number">
+</div>
+
+
 
 
                         <div class="mb-3">
@@ -254,60 +372,41 @@ document
 
         try {
 
-            await db
-                .collection("exchangeBooks")
-                .add({
+           await db.collection("exchangeBooks").add({
+    title: document.getElementById("title").value.trim(),
+    author: document.getElementById("author").value.trim(),
+    subject: document.getElementById("subject").value.trim(),
+    condition: document.getElementById("condition").value,
 
-                    title:
-                        document
-                            .getElementById("title")
-                            .value
-                            .trim(),
+    senderType: document.getElementById("senderType").value,
+    transactionType: document.getElementById("transactionType").value,
+    recipientType: document.getElementById("recipientType").value,
 
-                    author:
-                        document
-                            .getElementById("author")
-                            .value
-                            .trim(),
+    exchangeType: document.getElementById("transactionType").value,
 
-                    subject:
-                        document
-                            .getElementById("subject")
-                            .value
-                            .trim(),
+    price: document.getElementById("transactionType").value === "Sell"
+        ? Number(document.getElementById("price").value)
+        : null,
 
-                    condition:
-                        document
-                            .getElementById("condition")
-                            .value,
+    wantedBookTitle: document.getElementById("transactionType").value === "Exchange"
+        ? document.getElementById("wantedBookTitle").value.trim()
+        : null,
 
-                    exchangeType:
-                        document
-                            .getElementById("exchangeType")
-                            .value,
+    wantedBookDetails: document.getElementById("transactionType").value === "Exchange"
+        ? document.getElementById("wantedBookDetails").value.trim()
+        : null,
 
-                    description:
-                        document
-                            .getElementById("description")
-                            .value
-                            .trim(),
+    contactPhone: document.getElementById("contactPhone").value.trim(),
 
-                    ownerId:
-                        user.uid,
+    description: document.getElementById("description").value.trim(),
 
-                    ownerName:
-                        user.displayName,
+    ownerId: user.uid,
+    ownerName: user.displayName,
+    ownerEmail: user.email,
 
-                    ownerEmail:
-                        user.email,
-
-                    status:
-                        "available",
-
-                    createdAt:
-                        firebase.firestore.FieldValue.serverTimestamp()
-
-                });
+    status: "available",
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+});
 
 
             alert(
@@ -332,7 +431,36 @@ document
         }
 
     });
+const transactionType = document.getElementById("transactionType");
+const sellDetails = document.getElementById("sellDetails");
+const exchangeDetails = document.getElementById("exchangeDetails");
 
+transactionType.addEventListener("change", function () {
+
+    sellDetails.style.display = "none";
+    exchangeDetails.style.display = "none";
+
+    if (this.value === "Sell") {
+        sellDetails.style.display = "block";
+    }
+
+    if (this.value === "Exchange") {
+        exchangeDetails.style.display = "block";
+    }
+});
+
+const senderType = document.getElementById("senderType");
+const recipientType = document.getElementById("recipientType");
+
+function updateOptions() {
+
+    Array.from(recipientType.options).forEach(option => {
+        option.disabled = false;
+    });
+
+}
+senderType.addEventListener("change", updateOptions);
+transactionType.addEventListener("change", updateOptions);
 </script>
 
 </body>
