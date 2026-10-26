@@ -73,19 +73,83 @@
     </div>
 
 
-    <div class="row mb-4">
 
-        <div class="col-md-8 mx-auto">
+<!-- SMART AI VOICE SEARCH -->
+<div class="row mb-4">
+    <div class="col-md-8 mx-auto">
 
+        <div class="input-group input-group-lg">
             <input
                 id="searchInput"
-                class="form-control form-control-lg"
-                placeholder="Search books..."
-                onkeyup="filterBooks()">
+                class="form-control"
+                placeholder="Search books or try: AI book under 300..."
+                oninput="filterBooks()">
 
+            <button
+                class="btn btn-primary"
+                type="button"
+                onclick="filterBooks()">
+                <i class="bi bi-search"></i> Search
+            </button>
+        </div>
+
+        <div class="card shadow-sm border-0 mt-3">
+            <div class="card-body text-center">
+
+                <div class="mb-2">
+                    <i class="bi bi-robot text-primary"
+                       style="font-size: 2rem;"></i>
+                </div>
+
+                <h5 class="mb-1">CampusConnect Voice Assistant</h5>
+
+                <p class="text-muted small mb-3">
+                    Speak in Hindi, English or Hinglish to find books.
+                </p>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-sm-6">
+                        <select id="voiceLanguage" class="form-select">
+                            <option value="hi-IN">Hindi / Hinglish</option>
+                            <option value="en-IN">English (India)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <button
+                            id="voiceSearchButton"
+                            class="btn btn-success w-100"
+                            type="button"
+                            onclick="startVoiceSearch()">
+                            <i class="bi bi-mic-fill"></i>
+                            Speak to Search
+                        </button>
+                    </div>
+                </div>
+
+                <p id="voiceAssistantStatus"
+                   class="small text-primary mb-1"
+                   aria-live="polite">
+                    Ready! Tap the microphone and speak.
+                </p>
+
+                <p id="voiceTranscript"
+                   class="small text-muted mb-3"></p>
+
+                <button
+                    class="btn btn-outline-secondary btn-sm"
+                    type="button"
+                    onclick="stopAssistantSpeech()">
+                    <i class="bi bi-volume-mute"></i>
+                    Stop Voice
+                </button>
+
+            </div>
         </div>
 
     </div>
+</div>
+
 
 <!-- ================= MARKETPLACE BOOKS ================= -->
 
