@@ -277,20 +277,18 @@ function displayBooks(data) {
 
 
     container.innerHTML = "";
-
-
     if (data.length === 0) {
-
         container.innerHTML = `
-            <div class="text-center">
-                <h5>No books currently listed.</h5>
-                <p>Be the first student to list a book!</p>
-            </div>
-        `;
+        <div class="col-12 text-center py-4">
+            <h5>No matching books found.</h5>
+            <p class="text-muted">
+                Try another subject, title or budget.
+            </p>
+        </div>
+    `;
+    return;
+}
 
-        return;
-
-    }
 
 
     data.forEach(book => {
@@ -426,39 +424,423 @@ ${book.transactionType === "Donate"
 }
 
 
+
+// ================= SMART BOOK SEARCH =================
+
+function normalizeSearchText(text) {
+    return String(text || "")
+        .toLowerCase()
+        .replace(/[^\w\s\u0900-\u097F]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+
+// Find a budget in queries such as:
+// "under 300", "₹300", "300 rupees tak", "300 ke andar"
+
+function extractBudget(query) {
+    const patterns = [
+        /₹\s*(\d{1,6})/i,
+        /\b(?:under|below|less than|within|upto|up to|maximum|max|not more than|budget(?: of)?)\s*(?:₹|rs\.?|rupees?)?\s*(\d{1,6})\b/i,
+        /\b(\d{1,6})\s*(?:rupees?|rs\.?|रुपये|रुपए)\s*(?:tak|ke andar)?\b/i,
+        /\b(\d{1,6})\s*(?:tak|ke andar)\b/i
+    ];
+
+    for (const pattern of patterns) {
+        const match = query.match(pattern);
+
+        if (match) {
+            return Number(match[1]);
+        }
+    }
+
+    return null;
+}
+
+
+// Remove common conversational words before matching.
+
+function getSearchTerms(query) {
+    const budget = extractBudget(query);
+
+    let cleaned = query
+        .replace(/₹\s*\d+/gi, " ")
+        .replace(/\b(?:under|below|less than|within|upto|up to|maximum|max|not more than|budget(?: of)?)\s*(?:₹|rs\.?|rupees?)?\s*\d+/gi, " ")
+        .replace(/\b\d+\s*(?:rupees?|rs\.?|रुपये|रुपए)\s*(?:tak|ke andar)?\b/gi, " ")
+        .replace(/\b\d+\s*(?:tak|ke andar)\b/gi, " ");
+
+    const stopWords = new Set([
+        "i", "a", "an", "the", "for", "me", "please",
+        "find", "search", "show", "want", "need", "looking",
+        "book", "books", "kitab", "kitabe", "pustak",
+        "mujhe", "mujhko", "mere", "koi", "ek", "chahiye",
+        "ka", "ki", "ke", "hai", "hain", "ho", "wala", "wali",
+        "dikhao", "karo", "karna", "milega", "milegi",
+        "price", "budget", "rupees", "rupee", "rs", "tak", "andar",
+        "with", "under", "below", "and", "or"
+    ]);
+
+    const terms = normalizeSearchText(cleaned)
+        .split(" ")
+        .filter(word => word.length > 1 && !stopWords.has(word));
+
+    return { terms, budget };
+}
+
+
+// Related terms help with common subject names and abbreviations.
+
+const SEARCH_SYNONYM_GROUPS = [
+    ["ai", "artificial intelligence", "machine learning", "ml", "deep learning"],
+    ["dbms", "database", "databases", "sql", "mysql"],
+    ["python", "programming", "coding", "code"],
+    ["java", "programming", "coding"],
+    ["web development", "web dev", "html", "css", "javascript"],
+    ["computer networks", "networking", "networks"],
+    ["os", "operating systems", "operating system"],
+    ["data science", "data analytics", "analytics"],
+    ["maths", "mathematics", "mathematical"]
+];
+
+
+
+function getRelatedTerms(query, directTerms) {
+    const normalizedQuery =
+        " " + normalizeSearchText(query) + " ";
+
+    const related = new Set();
+
+    for (const group of SEARCH_SYNONYM_GROUPS) {
+        const groupMatches = group.some(alias => {
+            const normalizedAlias =
+                normalizeSearchText(alias);
+
+            return normalizedQuery.includes(
+                " " + normalizedAlias + " "
+            ) || directTerms.includes(normalizedAlias);
+        });
+
+        if (groupMatches) {
+            group.forEach(alias => related.add(alias));
+        }
+    }
+
+    // Direct terms ko related terms se remove karo.
+    directTerms.forEach(term => related.delete(term));
+
+    return Array.from(related);
+}
+
+
+
+function getBookText(book) {
+    return {
+        title: normalizeSearchText(book.title),
+        author: normalizeSearchText(book.author),
+        subject: normalizeSearchText(book.subject),
+        description: normalizeSearchText(book.description),
+        wanted: normalizeSearchText(
+            (book.wantedBookTitle || "") + " " +
+            (book.wantedBookDetails || "")
+        ),
+        other: normalizeSearchText(
+            (book.condition || "") + " " +
+            (book.transactionType || book.exchangeType || "")
+        )
+    };
+}
+
+
+function getBookPrice(book) {
+    const type = String(
+        book.transactionType || book.exchangeType || ""
+    ).toLowerCase();
+
+    if (type === "donate") {
+        return 0;
+    }
+
+    if (type === "sell" && book.price !== null &&
+        book.price !== undefined && book.price !== "") {
+        const price = Number(book.price);
+
+        return Number.isFinite(price) ? price : null;
+    }
+
+    // Exchange books don't have a selling price.
+    return null;
+}
+
+
+function scoreBook(book, directTerms, relatedTerms, query) {
+    const fields = getBookText(book);
+    let score = 0;
+
+    if (query && fields.title.includes(normalizeSearchText(query))) {
+        score += 10;
+    }
+
+    for (const term of directTerms) {
+        if (fields.title.includes(term)) score += 8;
+        if (fields.subject.includes(term)) score += 7;
+        if (fields.author.includes(term)) score += 5;
+        if (fields.description.includes(term)) score += 3;
+        if (fields.wanted.includes(term)) score += 2;
+        if (fields.other.includes(term)) score += 1;
+    }
+
+    for (const term of relatedTerms) {
+        if (fields.title.includes(term)) score += 2;
+        if (fields.subject.includes(term)) score += 3;
+        if (fields.description.includes(term)) score += 1;
+    }
+
+    return score;
+}
+
+
+function smartSearchBooks(query) {
+    const { terms, budget } = getSearchTerms(query);
+    const relatedTerms = getRelatedTerms(query, terms);
+
+    let results = books.map(book => ({
+        book,
+        score: scoreBook(book, terms, relatedTerms, query)
+    }));
+
+    // Apply the budget to priced books and donations.
+    // Unpriced exchange books are not treated as under-budget books.
+    if (budget !== null) {
+        results = results.filter(item => {
+            const price = getBookPrice(item.book);
+            return price !== null && price <= budget;
+        });
+    }
+
+    // When the user only gave a budget, show all books within it.
+    // Otherwise, require at least one keyword match.
+    if (terms.length > 0) {
+        results = results.filter(item => item.score > 0);
+    }
+
+    results.sort((a, b) => b.score - a.score);
+
+    return results.map(item => item.book);
+}
+
+
+// Normal text search and voice search both use the same search logic.
+
 function filterBooks() {
+    const query = document.getElementById("searchInput").value.trim();
+    const results = smartSearchBooks(query);
 
-    const search =
-        document
-            .getElementById("searchInput")
-            .value
-            .toLowerCase();
+    displayBooks(results);
 
+    const status = document.getElementById("voiceAssistantStatus");
 
-    const filtered =
-        books.filter(book =>
-
-            (book.title || "")
-                .toLowerCase()
-                .includes(search)
-
-            ||
-
-            (book.author || "")
-                .toLowerCase()
-                .includes(search)
-
-            ||
-
-            (book.subject || "")
-                .toLowerCase()
-                .includes(search)
-
-        );
+    if (status) {
+        status.textContent = query
+            ? `${results.length} matching book(s) found.`
+            : "Showing all available books.";
+    }
+}
 
 
-    displayBooks(filtered);
+// ================= VOICE INPUT =================
 
+let activeRecognition = null;
+
+
+function startVoiceSearch() {
+    const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        document.getElementById("voiceAssistantStatus").textContent =
+            "Voice search isn't supported in this browser. Try Chrome or Edge.";
+
+        return;
+    }
+
+    // Avoid starting two microphone sessions together.
+    if (activeRecognition) {
+        activeRecognition.stop();
+        activeRecognition = null;
+    }
+
+    const recognition = new SpeechRecognition();
+    activeRecognition = recognition;
+
+    recognition.lang =
+        document.getElementById("voiceLanguage").value;
+
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    const status =
+        document.getElementById("voiceAssistantStatus");
+
+    const transcript =
+        document.getElementById("voiceTranscript");
+
+    const button =
+        document.getElementById("voiceSearchButton");
+
+    transcript.textContent = "";
+    status.textContent = "Listening... Speak your book request.";
+    button.disabled = true;
+
+    recognition.onresult = function(event) {
+        const spokenText =
+            event.results[0][0].transcript.trim();
+
+        document.getElementById("searchInput").value = spokenText;
+        transcript.textContent = "You said: " + spokenText;
+
+        const results = smartSearchBooks(spokenText);
+
+        displayBooks(results);
+
+        status.textContent =
+            `${results.length} matching book(s) found.`;
+
+        speakSearchResults(spokenText, results);
+    };
+
+    recognition.onerror = function(event) {
+        console.error("Voice recognition error:", event.error);
+
+        if (event.error === "not-allowed") {
+            status.textContent =
+                "Microphone permission denied. Allow microphone access in your browser.";
+        } else if (event.error === "no-speech") {
+            status.textContent =
+                "I couldn't hear anything. Please tap the microphone and try again.";
+        } else {
+            status.textContent =
+                "Voice search failed. Please try again or type your search.";
+        }
+    };
+
+    recognition.onend = function() {
+        button.disabled = false;
+
+        if (activeRecognition === recognition) {
+            activeRecognition = null;
+        }
+    };
+
+    try {
+        recognition.start();
+    } catch (error) {
+        console.error(error);
+        button.disabled = false;
+        activeRecognition = null;
+        status.textContent = "Could not start the microphone. Please try again.";
+    }
+}
+
+
+// ================= SPOKEN ANSWER =================
+
+function speakAssistant(message) {
+    if (!("speechSynthesis" in window)) {
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(message);
+
+    const selectedLanguage =
+        document.getElementById("voiceLanguage").value;
+
+    utterance.lang = selectedLanguage;
+    utterance.rate = 0.95;
+    utterance.pitch = 1;
+
+    window.speechSynthesis.speak(utterance);
+}
+
+
+function speakSearchResults(query, results) {
+    const budget = extractBudget(query);
+    const language =
+        document.getElementById("voiceLanguage").value;
+
+    if (results.length === 0) {
+        const noResultsMessage = language === "en-IN"
+            ? "Sorry, I couldn't find matching available books. Try another subject or increase your budget."
+            : "Sorry, is budget ya subject mein matching book nahi mili. Aap doosra subject ya thoda zyada budget try kar sakte hain.";
+
+        speakAssistant(noResultsMessage);
+        return;
+    }
+
+    const count = results.length;
+    const topBooks = results.slice(0, 3);
+
+    let message = language === "en-IN"
+        ? `I found ${count} matching book${count === 1 ? "" : "s"}. `
+        : `Mujhe ${count} matching book${count === 1 ? "" : "s"} mili hain. `;
+
+    topBooks.forEach((book, index) => {
+        const type = String(
+            book.transactionType || book.exchangeType || ""
+        ).toLowerCase();
+
+        let priceText = "";
+
+        if (type === "donate") {
+            priceText = language === "en-IN"
+                ? "Available for free."
+                : "Yeh free donation hai.";
+        } else if (type === "sell" && book.price !== null &&
+                   book.price !== undefined && book.price !== "") {
+            priceText = language === "en-IN"
+                ? `Price ${Number(book.price)} rupees.`
+                : `Price ${Number(book.price)} rupees hai.`;
+        } else if (type === "exchange") {
+            priceText = language === "en-IN"
+                ? "Available for exchange."
+                : "Exchange ke liye available hai.";
+        }
+
+        message += language === "en-IN"
+            ? `Option ${index + 1}: ${book.title || "Untitled book"}. ${priceText} `
+            : `Option ${index + 1}: ${book.title || "Untitled book"}. ${priceText} `;
+    });
+
+    if (count > topBooks.length) {
+        message += language === "en-IN"
+            ? "More matching books are displayed on your screen."
+            : "Baaki matching books screen par dikh rahi hain.";
+    }
+
+    if (budget !== null) {
+        message += language === "en-IN"
+            ? ` Your budget was ${budget} rupees.`
+            : ` Aapka budget ${budget} rupees tha.`;
+    }
+
+    speakAssistant(message);
+}
+
+
+function stopAssistantSpeech() {
+    if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+    }
+
+    if (activeRecognition) {
+        activeRecognition.stop();
+    }
+
+    document.getElementById("voiceAssistantStatus").textContent =
+        "Voice stopped. You can search again.";
 }
 
 
